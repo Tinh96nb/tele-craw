@@ -6,10 +6,6 @@ include 'madeline.php';
 $settings = [
     'logger' => 0
 ];
-$servername = "127.0.0.1";
-$username = "root";
-$password = "123abc";
-$dbname = "datastore";
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
@@ -22,8 +18,8 @@ $MadelineProto->async(true);
 function rawMem($MadelineProto) {
     $MadelineProto->loop(function () use ($MadelineProto) {
         yield $MadelineProto->start();
-        $pwr_chat = yield $MadelineProto->getPwrChat('https://t.me/ByteNextVietnamCommunity');
-        $fp = fopen('bscs.csv', 'w');
+        $pwr_chat = yield $MadelineProto->getPwrChat('https://t.me/elemonvietnamgroup');
+        $fp = fopen('elemon.csv', 'w');
         for ($i=0; $i < count($pwr_chat['participants']) - 1; $i++) {
             $user = $pwr_chat['participants'][$i]['user'];
             $fields = [$user['id'], $user['username'] ?? '', $user['first_name'] ?? '', $user['last_name'] ?? ''];
@@ -87,4 +83,34 @@ function setId($conn, $MadelineProto) {
     $conn->close();
 }
 
-addMemToGr($conn, $MadelineProto);
+function getMessage($MadelineProto)
+{
+    $MadelineProto->loop(function () use ($MadelineProto) {
+        yield $MadelineProto->start();
+        $channel = '@ByteNextVietnamCommunity';
+        $limit = 100;
+        $offset_id = 0;
+        $time = "2021-11-10 21:00:00";
+        $startTime = strtotime($time);
+        $fp = fopen("{$time}.csv", 'w');
+        do {
+            $messages_Messages = yield $MadelineProto->messages->getHistory(['peer' => $channel, 'offset_id' => $offset_id, 'offset_date' => 0, 'add_offset' => 0, 'limit' => $limit, 'max_id' => 0, 'min_id' => 0, 'hash' => 0 ]);
+            if (count($messages_Messages['messages']) == 0) break;
+            foreach ($messages_Messages['messages'] as $message) {
+                if (isset($message['message'])) {
+                    echo "date: " . date('Y-m-d H:i:s', $message['date']) . " message: " . @$message['message'] . "\n";
+                    $content = [date('Y-m-d H:i:s', $message['date']), $message['message']];
+                    fputcsv($fp, $content);
+                }
+                if ($message['date'] < $startTime) return;
+            }
+            $offset_id = end($messages_Messages['messages'])['id'];
+	        sleep(2);
+        } while (true);
+        fclose($fp);
+
+
+    });
+}
+getMessage($MadelineProto);
+// rawMem($MadelineProto);
